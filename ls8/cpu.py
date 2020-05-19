@@ -24,7 +24,8 @@ class CPU:
                 if string_val == '':
                     continue
                 v = int(string_val, 2)
-                self.ram[address] = v
+                # self.ram[address] = v
+                self.ram_write(address, v)
                 address += 1
             
     def alu(self, op, reg_a, reg_b):
@@ -39,10 +40,10 @@ class CPU:
 
 
     def ram_read(self, mar):
-        return self.reg[mar]
+        return self.ram[mar]
 
     def ram_write(self, mar, mdr):
-        self.reg[mar] = mdr
+        self.ram[mar] = mdr
 
     def trace(self):
         """
@@ -72,13 +73,18 @@ class CPU:
         halted = False
         while not halted:
             instruction = self.ram[self.pc]
+            opr_a = self.ram_read(self.pc + 1)
+            opr_b = self.ram_read(self.pc + 2)
+
             if instruction == 0b10000010:
-                self.ram_write(self.ram[self.pc+1], self.ram[self.pc+2])
+                # self.ram_write(self.ram[self.pc+1], self.ram[self.pc+2])
+                self.reg[opr_a] = opr_b
                 self.pc += 3
 
             elif instruction == 0b01000111:
-                value = self.ram_read(self.ram[self.pc + 1])
-                print(value)
+                # value = self.ram_read(self.ram[self.pc + 1])
+                # print(value)
+                print(self.reg[opr_a])
                 self.pc +=2
             
             elif instruction == 0b10100010:
