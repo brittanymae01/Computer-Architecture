@@ -10,6 +10,8 @@ class CPU:
         self.reg = [0] * 8
         self.ram = [0] * 256
         self.pc = 0
+        self.sp = 7
+        self.reg[self.sp] = 0xF4
 
     def load(self):
         """Load a program into memory."""
@@ -92,6 +94,24 @@ class CPU:
                 reg_b = self.ram[self.pc+2]
                 self.alu("MUL", reg_a, reg_b)
                 self.pc +=3
+
+                
+            elif instruction == 0b01000101:
+                self.reg[self.sp] -= 1
+                reg_num = opr_a
+                val = self.reg[reg_num]
+                top_of_stack_address = self.reg[self.sp]
+                self.ram[top_of_stack_address] = val
+                self.pc += 2
+
+            elif instruction == 0b01000110:
+                top_of_stack_address = self.reg[self.sp]
+                val = self.ram[top_of_stack_address]
+                reg_num = opr_a
+                self.reg[reg_num] = val
+
+                self.reg[self.sp] += 1
+                self.pc +=2
 
             elif instruction == 0b00000001:
                 halted = True
