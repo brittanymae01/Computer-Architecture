@@ -12,6 +12,7 @@ class CPU:
         self.pc = 0
         self.sp = 7
         self.reg[self.sp] = 0xF4
+        self.flag = 0b00000000
 
     def load(self):
         """Load a program into memory."""
@@ -36,6 +37,13 @@ class CPU:
             self.reg[reg_a] += self.reg[reg_b]
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+        elif op == "CMP":
+            if self.reg[reg_a] == self.reg[reg_b]:
+                self.flag = 0b00000001
+            if self.reg[reg_a] < self.reg[reg_b]:
+                self.flag = 0b00000100
+            if self.reg[reg_a] > self.reg[reg_b]:
+                self.flag = 0b00000010
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -69,7 +77,19 @@ class CPU:
     def run(self):
         """Run the CPU."""
         instruction = self.ram[self.pc]
-
+        LDI = 0b10000010
+        PRN = 0b01000111
+        ADD = 0b10100000
+        MUL = 0b10100010
+        CMP = 0b10100111
+        PUSH = 0b01000101
+        POP = 0b01000110
+        CALL = 0b01010000
+        RET = 0b00010001
+        HLT = 0b00000001
+        JEQ = 0b01010101
+        JNE = 0b01010110
+        JMP = 0b01010100
 
         halted = False
         while not halted:
@@ -77,28 +97,49 @@ class CPU:
             opr_a = self.ram_read(self.pc + 1)
             opr_b = self.ram_read(self.pc + 2)
 
-            if instruction == 0b10000010:
+            if instruction == LDI:
                 self.reg[opr_a] = opr_b
                 self.pc += 3
 
-            elif instruction == 0b01000111:
+            elif instruction == PRN:
                 print(self.reg[opr_a])
                 self.pc +=2
 
-            elif instruction == 0b10100000:
+            elif instruction == ADD:
                 reg_a = self.ram[self.pc+1]
                 reg_b = self.ram[self.pc+2]
                 self.alu("ADD", reg_a, reg_b)
                 self.pc +=3
             
-            elif instruction == 0b10100010:
+            elif instruction == MUL:
                 reg_a = self.ram[self.pc+1]
                 reg_b = self.ram[self.pc+2]
                 self.alu("MUL", reg_a, reg_b)
                 self.pc +=3
 
+            elif instruction == CMP:
+                reg_a = self.ram[self.pc+1]
+                reg_b = self.ram[self.pc+2]
+                self.alu("CMP", reg_a, reg_b)
+                self.pc +=3
+
+            elif instruction == JMP:
+                self.pc = self.reg[opr_a]
+
+            elif instruction == JEQ:
+                if self.flag == 0b00000001:
+                    self.pc = self.reg[opr_a]
+                else:
+                    self.pc +=2
+
+            elif instruction == JNE:
+                if self.flag != 0b00000001:
+                    self.pc = self.reg[opr_a]
+                else:
+                    self.pc +=2
+
                 
-            elif instruction == 0b01000101:
+            elif instruction == PUSH:
                 self.reg[self.sp] -= 1
                 reg_num = opr_a
                 val = self.reg[reg_num]
@@ -106,7 +147,7 @@ class CPU:
                 self.ram[top_of_stack_address] = val
                 self.pc += 2
 
-            elif instruction == 0b01000110:
+            elif instruction == POP:
                 top_of_stack_address = self.reg[self.sp]
                 val = self.ram[top_of_stack_address]
                 reg_num = opr_a
@@ -115,7 +156,7 @@ class CPU:
                 self.reg[self.sp] += 1
                 self.pc +=2
 
-            elif instruction == 0b01010000:
+            elif instruction == CALL:
                 return_addr = self.pc + 2
                 self.reg[self.sp] -=1
                 top_of_stack_address = self.reg[self.sp]
@@ -124,13 +165,15 @@ class CPU:
                 subroutine_addr = self.reg[reg_num]
                 self.pc = subroutine_addr
 
-            elif instruction == 0b00010001:
+            elif instruction == RET:
                 top_of_stack_address = self.reg[self.sp]
                 return_addr = self.ram[top_of_stack_address]
                 self.reg[self.sp] +=1
                 self.pc = return_addr
+            
 
-            elif instruction == 0b00000001:
+
+            elif instruction == HLT:
                 halted = True
 
             else:
